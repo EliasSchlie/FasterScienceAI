@@ -53,4 +53,3 @@ def test_download_paper_with_brightdata():
         assert os.path.exists(result), f"Downloaded file does not exist: {result}"
         assert result.endswith(".pdf"), f"Downloaded file is not a PDF: {result}"
         assert os.path.getsize(result) > 0, f"Downloaded file is empty: {result}"
-

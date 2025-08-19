@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "pdf-from-doi",
+    "source-digestion-agent",
 ]
 
 [tool.uv.workspace]
@@ -13,3 +14,4 @@ members = ["packages/*"]
 
 [tool.uv.sources]
 pdf-from-doi = { workspace = true }
+source-digestion-agent = { workspace = true }

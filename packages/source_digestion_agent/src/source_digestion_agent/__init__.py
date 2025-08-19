@@ -1,2 +1,3 @@
-def main() -> None:
-    print("Hello from source-digestion-agent!")
+from .agent import SourceDigestionAgent
+
+__all__ = ["SourceDigestionAgent"]

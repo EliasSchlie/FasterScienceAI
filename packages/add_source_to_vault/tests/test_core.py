@@ -143,21 +143,58 @@ def test_sanitize_filename_edge_cases():
     assert manager._sanitize_filename("  Leading and Trailing  ") == "leading-and-trailing"
 
 
+def test_extract_first_author_lastname():
+    """Test _extract_first_author_lastname method."""
+    manager = SourceManager("/tmp")
+    
+    # Normal case
+    metadata = {"authors": ["John Doe", "Jane Smith"]}
+    assert manager._extract_first_author_lastname(metadata) == "doe"
+    
+    # Single name
+    metadata_single = {"authors": ["Einstein"]}
+    assert manager._extract_first_author_lastname(metadata_single) == "einstein"
+    
+    # Multiple parts
+    metadata_multiple = {"authors": ["Jean-Claude Van Damme"]}
+    assert manager._extract_first_author_lastname(metadata_multiple) == "damme"
+    
+    # Empty authors
+    metadata_empty = {"authors": []}
+    assert manager._extract_first_author_lastname(metadata_empty) == "unknown"
+    
+    # Missing authors key
+    metadata_missing = {}
+    assert manager._extract_first_author_lastname(metadata_missing) == "unknown"
+    
+    # Empty string author
+    metadata_empty_str = {"authors": [""]}
+    assert manager._extract_first_author_lastname(metadata_empty_str) == "unknown"
+    
+    # Author with special characters
+    metadata_special = {"authors": ["José García-Martinez"]}
+    assert manager._extract_first_author_lastname(metadata_special) == "garcamartinez"
+
+
 def test_create_filename():
     """Test _create_filename method."""
     manager = SourceManager("/tmp")
     
-    # With year
-    metadata_with_year = {"title": "Test Paper", "year": "2023"}
-    assert manager._create_filename(metadata_with_year) == "2023-test-paper"
+    # With year and author
+    metadata_with_year = {"title": "Test Paper", "year": "2023", "authors": ["John Doe"]}
+    assert manager._create_filename(metadata_with_year) == "2023-doe-test-paper"
     
-    # Without year
-    metadata_no_year = {"title": "Test Paper", "year": ""}
-    assert manager._create_filename(metadata_no_year) == "test-paper"
+    # Without year but with author
+    metadata_no_year = {"title": "Test Paper", "year": "", "authors": ["John Doe"]}
+    assert manager._create_filename(metadata_no_year) == "doe-test-paper"
     
-    # Missing year key
-    metadata_missing_year = {"title": "Test Paper"}
-    assert manager._create_filename(metadata_missing_year) == "test-paper"
+    # Missing year key but with author
+    metadata_missing_year = {"title": "Test Paper", "authors": ["John Doe"]}
+    assert manager._create_filename(metadata_missing_year) == "doe-test-paper"
+    
+    # Missing authors
+    metadata_no_authors = {"title": "Test Paper", "year": "2023"}
+    assert manager._create_filename(metadata_no_authors) == "2023-unknown-test-paper"
 
 
 def test_create_bibtex():
@@ -244,15 +281,15 @@ def test_add_source_success(mock_source_exists, mock_to_markdown, temp_vault):
         
         result = manager.add_source("10.1234/test")
         
-        assert result == "2023-test-paper"
+        assert result == "2023-doe-test-paper"
         mock_get_metadata.assert_called_once_with("10.1234/test")
-        manager.pdffromdoi.download.assert_called_once_with(doi="10.1234/test", filename="2023-test-paper")
+        manager.pdffromdoi.download.assert_called_once_with(doi="10.1234/test", filename="2023-doe-test-paper")
         mock_to_markdown.assert_called_once()
         
         # Check files were created
-        assert (temp_vault / "sources" / "raw" / "2023-test-paper.txt").exists()
-        assert (temp_vault / "sources" / "md" / "2023-test-paper.md").exists()
-        assert (temp_vault / "sources" / "bib" / "2023-test-paper.bib").exists()
+        assert (temp_vault / "sources" / "raw" / "2023-doe-test-paper.txt").exists()
+        assert (temp_vault / "sources" / "md" / "2023-doe-test-paper.md").exists()
+        assert (temp_vault / "sources" / "bib" / "2023-doe-test-paper.bib").exists()
 
 
 @patch.object(SourceManager, '_source_exists')
@@ -281,12 +318,12 @@ def test_add_source_pdf_download_fails(mock_source_exists, temp_vault):
     manager.pdffromdoi.download.return_value = None  # Download fails
     
     with patch.object(manager, '_get_metadata') as mock_get_metadata:
-        mock_get_metadata.return_value = {"title": "Test Paper", "year": ""}
+        mock_get_metadata.return_value = {"title": "Test Paper", "year": "", "authors": []}
         
         result = manager.add_source("10.1234/test")
         
         assert result is None
-        manager.pdffromdoi.download.assert_called_once_with(doi="10.1234/test", filename="test-paper")
+        manager.pdffromdoi.download.assert_called_once_with(doi="10.1234/test", filename="unknown-test-paper")
 
 
 def test_init_with_brightdata_key(temp_vault):
@@ -521,7 +558,7 @@ def test_add_source_end_to_end_integration(mock_source_exists, temp_vault):
             result = manager.add_source("10.1234/real-test")
             
             # Should return the filename
-            assert result == "2023-real-integration-test"
+            assert result == "2023-smith-real-integration-test"
             
             # Files should actually be created with real template content
             md_file = temp_vault / "sources" / "md" / f"{result}.md"

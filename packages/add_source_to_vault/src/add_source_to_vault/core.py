@@ -27,11 +27,32 @@ class SourceManager:
         """Convert title to safe filename."""
         return re.sub(r'[^\w\s-]', '', title).strip()[:100].replace(' ', '-').lower()
     
+    def _extract_first_author_lastname(self, metadata: dict) -> str:
+        """Extract and sanitize first author's last name."""
+        authors = metadata.get("authors", [])
+        if not authors:
+            return "unknown"
+        
+        # Get first author and extract last name (assumes "First Last" format)
+        first_author = authors[0]
+        parts = first_author.strip().split()
+        if not parts:
+            return "unknown"
+        
+        last_name = parts[-1]  # Take the last part as surname
+        # Remove all non-ASCII alphanumeric characters and convert to lowercase
+        return re.sub(r'[^a-zA-Z0-9]', '', last_name).lower()
+    
     def _create_filename(self, metadata: dict) -> str:
-        """Create filename with year prefix."""
+        """Create filename with year and author prefix."""
         title_part = self._sanitize_filename(metadata["title"])
+        author_part = self._extract_first_author_lastname(metadata)
         year = metadata.get("year", "")
-        return f"{year}-{title_part}" if year else title_part
+        
+        if year:
+            return f"{year}-{author_part}-{title_part}"
+        else:
+            return f"{author_part}-{title_part}"
     
     def _get_metadata(self, doi: str) -> Optional[dict]:
         """Fetch paper metadata from DOI. Returns None if metadata cannot be retrieved."""

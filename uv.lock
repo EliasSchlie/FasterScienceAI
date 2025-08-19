@@ -32,6 +32,12 @@ wheels = [
 name = "fasterscienceai"
 version = "0.1.0"
 source = { virtual = "." }
+dependencies = [
+    { name = "pdf-from-doi" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pdf-from-doi", editable = "packages/PDF_from_DOI" }]
 
 [[package]]
 name = "iniconfig"

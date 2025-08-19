@@ -7,6 +7,7 @@
 .db
 mlruns
 mlruns/*
+.pytest_cache
 
 # Ignore LaTeX auxiliary files
 *.aux

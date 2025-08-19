@@ -37,6 +37,19 @@ def test_download_paper():
         assert result.endswith(".pdf"), f"Downloaded file is not a PDF: {result}"
         assert os.path.getsize(result) > 0, f"Downloaded file is empty: {result}"
 
+def test_download_arXiv_paper():
+    """Test downloading a real open-access paper"""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        client = PDFFromDOI(output_dir=tmpdir)
+        # DOI of Attention is all you need paper
+        doi = "10.10.48550/arXiv.1706.03762"
+        result = client.download(doi)
+        
+        # The download should succeed for this open-access paper
+        assert result is not None, f"Download failed for DOI {doi}"
+        assert os.path.exists(result), f"Downloaded file does not exist: {result}"
+        assert result.endswith(".pdf"), f"Downloaded file is not a PDF: {result}"
+        assert os.path.getsize(result) > 0, f"Downloaded file is empty: {result}"
 
 @pytest.mark.skipif(
     not BRIGHT_WEB_UNLOCKER_KEY,

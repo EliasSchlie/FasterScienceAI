@@ -14,10 +14,18 @@ class PDFFromDOI:
         self.unpaywall_email = unpaywall_email
 
     def download(self, doi: str) -> Optional[str]:
+        path = os.path.join(self.output_dir, f"{self._sanitize_filename(doi)}.pdf")
+        
+        # Try arXiv direct download first if it's an arXiv DOI
+        if self._is_arxiv_doi(doi):
+            pdf_url = self._get_arxiv_pdf_url(doi)
+            if pdf_url and self._download_pdf_direct(pdf_url, path):
+                return path
+        
+        # Fallback to Unpaywall
         pdf_url = self._get_pdf_url_from_unpaywall(doi)
         if not pdf_url:
             return None
-        path = os.path.join(self.output_dir, f"{self._sanitize_filename(doi)}.pdf")
         # Try Bright Data first, fallback to direct download
         if self._download_pdf_via_brightdata(pdf_url, path):
             return path
@@ -64,6 +72,17 @@ class PDFFromDOI:
         except Exception:
             return False
 
+    def _is_arxiv_doi(self, doi: str) -> bool:
+        """Check if DOI is from arXiv (format: 10.48550/arXiv.XXXX)"""
+        return doi.startswith("10.48550/arXiv.")
+    
+    def _get_arxiv_pdf_url(self, doi: str) -> Optional[str]:
+        """Extract arXiv ID from DOI and construct PDF URL"""
+        if not self._is_arxiv_doi(doi):
+            return None
+        arxiv_id = doi.split("arXiv.")[-1]
+        return f"https://arxiv.org/pdf/{arxiv_id}.pdf"
+    
     def _sanitize_filename(self, filename: str) -> str:
         return re.sub(r"[\\/*?:\"<>|]", "_", filename)
 

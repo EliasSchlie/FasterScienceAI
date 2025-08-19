@@ -18,9 +18,10 @@ def test_init():
 
 
 def test_sanitize_filename():
-    client = PDFFromDOI()
-    result = client._sanitize_filename("10.1126/science:test<>file")
-    assert result == "10.1126_science_test__file"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        client = PDFFromDOI(output_dir=tmpdir)
+        result = client._sanitize_filename("10.1126/science:test<>file")
+        assert result == "10.1126_science_test__file"
 
 
 def test_download_paper():
@@ -42,7 +43,7 @@ def test_download_arXiv_paper():
     with tempfile.TemporaryDirectory() as tmpdir:
         client = PDFFromDOI(output_dir=tmpdir)
         # DOI of Attention is all you need paper
-        doi = "10.10.48550/arXiv.1706.03762"
+        doi = "10.48550/arXiv.1706.03762"
         result = client.download(doi)
         
         # The download should succeed for this open-access paper

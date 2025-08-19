@@ -1,0 +1,25 @@
+[project]
+name = "add-source-to-vault"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "EliasSchlie", email = "EliasSchlie@users.noreply.github.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "bibtexparser>=1.4.3",
+    "pdf-from-doi",
+    "pymupdf4llm>=0.0.27",
+    "requests>=2.32.5",
+]
+
+[project.scripts]
+add-source-to-vault = "add_source_to_vault.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+pdf-from-doi = { workspace = true }

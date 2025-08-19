@@ -13,8 +13,8 @@ class PDFFromDOI:
         self.brightdata_api_key = brightdata_api_key or os.environ.get("WEB_UNLOCKER_1_KEY")
         self.unpaywall_email = unpaywall_email
 
-    def download(self, doi: str) -> Optional[str]:
-        path = os.path.join(self.output_dir, f"{self._sanitize_filename(doi)}.pdf")
+    def download(self, doi: str, filename: str = None) -> Optional[str]:
+        path = os.path.join(self.output_dir, f"{self._sanitize_filename(filename or doi)}.pdf")
         
         # Try arXiv direct download first if it's an arXiv DOI
         if self._is_arxiv_doi(doi):

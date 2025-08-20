@@ -1,17 +1,14 @@
 import os
+import json
 from typing import List
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from pydantic import BaseModel, Field
-from langchain_core.messages import HumanMessage
-from langchain_core.output_parsers import PydanticOutputParser
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
+from langchain_core.tools import tool
+from pydantic import Field
 
 load_dotenv()
-
-class RelevantNotes(BaseModel):
-    """Model for relevant notes."""
-    notes: List[str] = Field(description="List of relevant note titles")
 
 
 def get_note_list(directory: str) -> List[str]:
@@ -29,8 +26,18 @@ def get_note_list(directory: str) -> List[str]:
 
 def list_relevant_notes_outer(*args, **kwargs):
     vault_directory = kwargs["vault_directory"]
-    parser = PydanticOutputParser(pydantic_object=RelevantNotes)
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+    llm = ChatOpenAI(model="gpt-5-mini", temperature=0, reasoning_effort="low")
+
+    @tool
+    def log_relevant_notes(
+            notes: list[str] = Field(description="List of exact note paths that are relevant to the query. (leave empty if no notes are relevant)")
+            ):
+        """
+        Log notes relevant to the query.
+        """
+        print(f"Relevant notes: {notes}")
+    
+    llm_with_tools = llm.bind_tools([log_relevant_notes])
     
     def list_relevant_notes(
             query: str = Field(description="Short explanation of what notes you need. (can be in natural language)")
@@ -39,34 +46,62 @@ def list_relevant_notes_outer(*args, **kwargs):
         Get titles of all notes that are relevant to the query.
         """
         notes = get_note_list(vault_directory)
-        # Break notes into blocks of 50
-        block_size = 50
-        relevant_notes = []
-        
-        # Create blocks for parallel processing
-        blocks = [notes[i:i + block_size] for i in range(0, len(notes), block_size)]
-        
-        def process_block(block):
-            """Process a single block of notes."""
-            messages = [
-                HumanMessage(content=f"From this list of notes, return only the ones relevant to: {query}\n\nNotes:\n{block} \n Wrap the output in this format and provide no other text\n{parser.get_format_instructions()}")
-            ]
-            response = llm.invoke(messages)
-            return parser.parse(response.content).notes
-        
-        # Process blocks in parallel
+        if not notes:
+            print("No notes in directory: ", vault_directory)
+            return []
+
+        block_size = 30
+        blocks = [notes[i : i + block_size] for i in range(0, len(notes), block_size)]
+
+        def process_block(block: List[str]) -> List[str]:
+            system_prompt = (
+                "Call the log_relevant_notes tool and select only the note paths relevant to the query. If no notes are relevant, return an empty list \n"
+                "## Query:\n" 
+                "```\n"
+                f"{query}\n"
+                "```\n\n"
+            )
+            user_prompt = (
+                "Choose strictly from this list (use exact strings):\n"
+                f"{block}\n\n"
+            )
+            resp = llm_with_tools.invoke([SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)])
+            calls = getattr(resp, "tool_calls", None) or getattr(resp, "additional_kwargs", {}).get("tool_calls", [])
+            if not calls:
+                print("Tool call failed: no tool_calls in response")
+                return []
+            args = (calls[0].get("args") or (json.loads(calls[0].get("function", {}).get("arguments", "{}")) if isinstance(calls[0].get("function", {}).get("arguments"), str) else {})) or {}
+            notes_list = args.get("notes")
+            if not isinstance(notes_list, list):
+                print(f"Tool call missing 'notes' list. args={args}")
+                return []
+            invalid = [n for n in notes_list if isinstance(n, str) and n not in block]
+            if invalid:
+                print(f"Invalid notes (not in provided block): {invalid}")
+            return [n for n in notes_list if isinstance(n, str) and n in block]
+
+        relevant_notes: List[str] = []
         with ThreadPoolExecutor(max_workers=min(len(blocks), 10)) as executor:
-            # Submit all tasks
-            future_to_block = {executor.submit(process_block, block): block for block in blocks}
-            
-            # Collect results as they complete
-            for future in as_completed(future_to_block):
+            futures = [executor.submit(process_block, b) for b in blocks]
+            for f in as_completed(futures):
                 try:
-                    block_results = future.result()
-                    relevant_notes.extend(block_results)
+                    relevant_notes.extend(f.result())
                 except Exception as exc:
-                    # Log the error but continue processing other blocks
-                    print(f'Block processing generated an exception: {exc}')
-        
-        return relevant_notes
+                    print(f"Block processing generated an exception: {exc}")
+
+        # dedupe while preserving order
+        seen = set()
+        deduped = []
+        for n in relevant_notes:
+            if n not in seen:
+                seen.add(n)
+                deduped.append(n)
+        return deduped
+
     return list_relevant_notes
+
+if __name__ == "__main__":
+    import mlflow
+    mlflow.openai.autolog()
+    inner = list_relevant_notes_outer(vault_directory="./example_vault") # ~/Library/Documents/Obsidian/SecondBrainSync2
+    print(inner("Notes related to AlphaEvolve (2025 Novikov et al.), coding agent, LLM-guided evolution, matrix multiplication improvements, mathematical discoveries, data center scheduling, Gemini kernel optimization, TPU circuit design, FlashAttention optimization, evolutionary code agent, propositions from this paper"))

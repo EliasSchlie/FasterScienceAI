@@ -1,4 +1,5 @@
 import os
+import asyncio
 import mlflow
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
@@ -30,9 +31,9 @@ class SourceDigestionAgent:
             print(f"Source already exists: {e.filename}")
             result = {
                 "filename": e.filename,
-                "raw_text": os.path.join(vault_directory, "raw", f"{e.filename}.txt"),
-                "md_content": os.path.join(vault_directory, "md", f"{e.filename}.md"),
-                "bib_content": os.path.join(vault_directory, "bib", f"{e.filename}.bib")
+                "raw_text": open(os.path.join(vault_directory, "Sources", "raw", f"{e.filename}.txt"), "r", encoding="utf-8").read(),
+                "md_content": open(os.path.join(vault_directory, "Sources", "md", f"{e.filename}.md"), "r", encoding="utf-8").read(),
+                "bib_content": open(os.path.join(vault_directory, "Sources", "bib", f"{e.filename}.bib"), "r", encoding="utf-8").read()
             }
 
         prompt_path = os.path.join(os.path.dirname(__file__), "templates", "system_prompt.md")
@@ -44,6 +45,7 @@ class SourceDigestionAgent:
             raw_text=result["raw_text"],
             bib_content=result["bib_content"]
         )
+        print(prompt)
 
         tools = [
             tool(getattr(tool_pkg, name)(vault_directory=vault_directory))
@@ -62,11 +64,29 @@ class SourceDigestionAgent:
             checkpointer=InMemorySaver(),
         )
 
-    def invoke(self, message: str, thread_id: str) -> str:
-        result = self._agent.invoke(
-            {"messages": [{"role": "user", "content": message}]}, 
-            config={"configurable": {"thread_id": thread_id}}
-        )
+    def invoke(self, message: str, thread_id: str, verbose: bool = False) -> str:
+        inputs = {"messages": [{"role": "user", "content": message}]}
+        config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 60}
+
+        if not verbose:
+            result = self._agent.invoke(inputs, config=config)
+        else:
+            async def _run():
+                out = None
+                async for event in self._agent.astream_events(inputs, config=config, version="v2"):
+                    ev = event.get("event")
+                    name = event.get("name")
+                    data = event.get("data", {})
+                    if ev == "on_tool_start":
+                        print(f"[tool:start] {name} args={data.get('input')}")
+                    elif ev == "on_tool_end":
+                        print(f"[tool:end]   {name} -> {data.get('output')}")
+                    elif ev == "on_graph_end":
+                        out = data.get("output")
+                return out
+
+            result = asyncio.run(_run())
+
         final = result["messages"][-1]
         return getattr(final, "content", str(final))
 

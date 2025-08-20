@@ -14,10 +14,16 @@ class RelevantNotes(BaseModel):
 
 
 def get_note_list(directory: str) -> List[str]:
-    """Get list of all note titles (without .md extension) from directory."""
+    """Recursively list all .md notes relative to directory, e.g. 'sub/dir/note.md'."""
     if not os.path.exists(directory):
         return []
-    return [filename[:-3] for filename in os.listdir(directory) if filename.endswith('.md')]
+    notes: List[str] = []
+    for root, _, files in os.walk(directory):
+        for filename in files:
+            if filename.endswith('.md'):
+                rel_path = os.path.relpath(os.path.join(root, filename), directory)
+                notes.append(rel_path.replace(os.sep, '/'))
+    return sorted(notes)
 
 
 def list_relevant_notes_outer(*args, **kwargs):

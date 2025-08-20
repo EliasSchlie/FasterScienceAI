@@ -67,13 +67,12 @@ def test_get_metadata_failure(mock_get):
     """Test metadata fetching when API fails."""
     mock_response = MagicMock()
     mock_response.status_code = 404
+    mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("404")
     mock_get.return_value = mock_response
     
     manager = SourceManager("/tmp")
-    metadata = manager._get_metadata("10.1234/nonexistent")
-    
-    # Should return None when metadata cannot be retrieved
-    assert metadata is None
+    with pytest.raises(requests.exceptions.HTTPError):
+        manager._get_metadata("10.1234/nonexistent")
 
 
 @patch('add_source_to_vault.core.requests.get')
@@ -238,22 +237,20 @@ def test_arxiv_metadata_xml_errors(mock_get):
     mock_response.content = b'<invalid>xml</malformed>'
     mock_get.return_value = mock_response
     
-    metadata = manager._get_arxiv_metadata("10.48550/arXiv.2306.12345")
-    
-    # Should return None when XML cannot be parsed
-    assert metadata is None
+    with pytest.raises(ValueError):
+        manager._get_arxiv_metadata("10.48550/arXiv.2306.12345")
     
     # Test with empty response
     mock_response.content = b''
-    metadata = manager._get_arxiv_metadata("10.48550/arXiv.2306.12345")
-    assert metadata is None
+    with pytest.raises(ValueError):
+        manager._get_arxiv_metadata("10.48550/arXiv.2306.12345")
     
     # Test with XML but no entry
     mock_response.content = b'''<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 </feed>'''
-    metadata = manager._get_arxiv_metadata("10.48550/arXiv.2306.12345")
-    assert metadata is None
+    with pytest.raises(LookupError):
+        manager._get_arxiv_metadata("10.48550/arXiv.2306.12345")
 
 
 @patch('add_source_to_vault.core.pymupdf4llm.to_markdown')
@@ -302,9 +299,8 @@ def test_add_source_already_exists(mock_source_exists, temp_vault):
     with patch.object(manager, '_get_metadata') as mock_get_metadata:
         mock_get_metadata.return_value = {"title": "Test Paper"}
         
-        result = manager.add_source("10.1234/test")
-        
-        assert result is None
+        with pytest.raises(FileExistsError):
+            manager.add_source("10.1234/test")
         mock_get_metadata.assert_called_once()
 
 
@@ -315,14 +311,13 @@ def test_add_source_pdf_download_fails(mock_source_exists, temp_vault):
     
     manager = SourceManager(str(temp_vault))
     manager.pdffromdoi = MagicMock()
-    manager.pdffromdoi.download.return_value = None  # Download fails
+    manager.pdffromdoi.download.side_effect = RuntimeError("download failed")
     
     with patch.object(manager, '_get_metadata') as mock_get_metadata:
         mock_get_metadata.return_value = {"title": "Test Paper", "year": "", "authors": []}
         
-        result = manager.add_source("10.1234/test")
-        
-        assert result is None
+        with pytest.raises(RuntimeError):
+            manager.add_source("10.1234/test")
         manager.pdffromdoi.download.assert_called_once_with(doi="10.1234/test", filename="unknown-test-paper")
 
 
@@ -346,10 +341,8 @@ def test_get_metadata_network_error(mock_get):
     
     manager = SourceManager("/tmp")
     
-    # Should handle network errors gracefully and return None
-    metadata = manager._get_metadata("10.1234/test")
-    
-    assert metadata is None
+    with pytest.raises(requests.exceptions.HTTPError):
+        manager._get_metadata("10.1234/test")
 
 
 @patch('add_source_to_vault.core.requests.get')
@@ -362,10 +355,8 @@ def test_get_metadata_invalid_json(mock_get):
     
     manager = SourceManager("/tmp")
     
-    # Should handle JSON parsing errors gracefully and return None
-    metadata = manager._get_metadata("10.1234/test")
-    
-    assert metadata is None
+    with pytest.raises(ValueError):
+        manager._get_metadata("10.1234/test")
 
 
 def test_get_metadata_missing_fields():
@@ -401,8 +392,8 @@ def test_get_metadata_missing_fields():
             }
         }
         
-        metadata = manager._get_metadata("10.1234/test")
-        assert metadata is None
+        with pytest.raises(ValueError):
+            manager._get_metadata("10.1234/test")
 
 
 @patch('add_source_to_vault.core.pymupdf4llm.to_markdown')
@@ -432,9 +423,8 @@ def test_add_source_file_write_error(mock_source_exists, mock_to_markdown, temp_
                 "abstract": "Test abstract"
             }
             
-            # Should handle file write errors gracefully and return None
-            result = manager.add_source("10.1234/test")
-            assert result is None
+            with pytest.raises(OSError):
+                manager.add_source("10.1234/test")
     finally:
         # Clean up - restore permissions
         raw_dir.chmod(0o755)
@@ -448,11 +438,10 @@ def test_add_source_metadata_fails(mock_source_exists, temp_vault):
     manager = SourceManager(str(temp_vault))
     
     with patch.object(manager, '_get_metadata') as mock_get_metadata:
-        mock_get_metadata.return_value = None  # Metadata retrieval fails
+        mock_get_metadata.side_effect = ValueError("metadata failed")  # Metadata retrieval fails
         
-        result = manager.add_source("10.1234/test")
-        
-        assert result is None
+        with pytest.raises(ValueError):
+            manager.add_source("10.1234/test")
         mock_get_metadata.assert_called_once_with("10.1234/test")
         # PDF download should not be attempted if metadata fails
 

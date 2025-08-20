@@ -26,7 +26,10 @@ def edit_note_outer(*args, **kwargs):
         """
         Finds and replaces a string in a note with a new string.
         """
-        file_path = os.path.join(VAULT_DIRECTORY, note_title + ".md")
+        file_path = os.path.join(
+            VAULT_DIRECTORY,
+            note_title if note_title.endswith(".md") else note_title + ".md",
+        )
         
         if not os.path.exists(file_path):
             return f"Note {note_title} not found."

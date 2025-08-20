@@ -349,13 +349,17 @@ name = "fasterscienceai"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "add-source-to-vault" },
     { name = "pdf-from-doi" },
+    { name = "pytest" },
     { name = "source-digestion-agent" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "add-source-to-vault", editable = "packages/add_source_to_vault" },
     { name = "pdf-from-doi", editable = "packages/PDF_from_DOI" },
+    { name = "pytest", specifier = ">=8.4.1" },
     { name = "source-digestion-agent", editable = "packages/source_digestion_agent" },
 ]
 

@@ -39,7 +39,10 @@ def read_note_outer(*args, **kwargs):
         Get the content of a note with the provided title.
         """
         # Construct file path - vault directory is pre-validated by server
-        file_path = os.path.join(VAULT_DIRECTORY, note_title + ".md")
+        file_path = os.path.join(
+            VAULT_DIRECTORY,
+            note_title if note_title.endswith(".md") else note_title + ".md",
+        )
         
         # Use safe file reading function
         return safe_read_file(file_path)

@@ -88,14 +88,14 @@ Yaml-metadata (Don't edit!)
 ...
 ```
 
-# Current source:
+# Current source: **{filename}**
 
 ## Citation
 ```bib
-{bibtex_metadata}
+{bib_content}
 ```
 
 ## Raw text:
 ```md
-{raw_source_text}
+{raw_text}
 ```

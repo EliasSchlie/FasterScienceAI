@@ -1,3 +1,4 @@
+import errno
 import os
 import re
 import xml.etree.ElementTree as ET
@@ -54,8 +55,8 @@ class SourceManager:
         else:
             return f"{author_part}-{title_part}"
     
-    def _get_metadata(self, doi: str) -> Optional[dict]:
-        """Fetch paper metadata from DOI. Returns None if metadata cannot be retrieved."""
+    def _get_metadata(self, doi: str) -> dict:
+        """Fetch paper metadata from DOI. Raises on failure."""
         if "arxiv" in doi.lower():
             return self._get_arxiv_metadata(doi)
         
@@ -63,16 +64,17 @@ class SourceManager:
         
         try:
             response = requests.get(url)
-            if response.status_code != 200:
-                return None
+            response.raise_for_status()
             
             data = response.json()["message"]
-        except (requests.exceptions.RequestException, ValueError, KeyError):
-            return None
+        except requests.exceptions.RequestException as e:
+            raise requests.exceptions.HTTPError(f"Crossref request failed for DOI {doi}") from e
+        except (ValueError, KeyError) as e:
+            raise ValueError(f"Invalid Crossref response for DOI {doi}") from e
         
         # Only return metadata if we have at least a title
         if not (title := data.get("title")):
-            return None
+            raise ValueError("Crossref metadata missing title")
             
         metadata = {"title": title[0], "doi": doi}
         
@@ -99,27 +101,28 @@ class SourceManager:
         
         return metadata
     
-    def _get_arxiv_metadata(self, doi: str) -> Optional[dict]:
-        """Fetch metadata for arXiv papers. Returns None if metadata cannot be retrieved."""
+    def _get_arxiv_metadata(self, doi: str) -> dict:
+        """Fetch metadata for arXiv papers. Raises on failure."""
         arxiv_id = doi.split("arXiv.")[-1]
         url = f"http://export.arxiv.org/api/query?id_list={arxiv_id}"
         
         try:
             response = requests.get(url)
-            if response.status_code != 200:
-                return None
+            response.raise_for_status()
             
             root = ET.fromstring(response.content)
             entry = root.find("{http://www.w3.org/2005/Atom}entry")
             if entry is None:
-                return None
-        except (requests.exceptions.RequestException, ET.ParseError):
-            return None
+                raise LookupError("arXiv response missing entry")
+        except requests.exceptions.RequestException as e:
+            raise requests.exceptions.HTTPError(f"arXiv request failed for DOI {doi}") from e
+        except ET.ParseError as e:
+            raise ValueError("Invalid XML from arXiv") from e
         
         # Only return metadata if we can get at least a title
         title_elem = entry.find("{http://www.w3.org/2005/Atom}title")
         if title_elem is None or not title_elem.text:
-            return None
+            raise ValueError("arXiv metadata missing title")
             
         metadata = {
             "title": title_elem.text.strip().replace('\n', ' '),
@@ -153,26 +156,19 @@ class SourceManager:
         return any((self.sources_path / subdir / f"{filename}.{ext}").exists() 
                   for subdir, ext in [("pdfs", "pdf"), ("md", "md"), ("bib", "bib")])
     
-    def add_source(self, doi: str) -> Optional[str]:
-        """Add source to vault. Returns filename if successful."""
+    def add_source(self, doi: str) -> list[str]:
+        """Add source to vault. Returns dict with filename, raw_text, md_content, bib_content if successful, raises on failure."""
         # Get metadata
         metadata = self._get_metadata(doi)
-        if not metadata:
-            print(f"Failed to retrieve metadata for DOI: {doi}")
-            return None
             
         filename = self._create_filename(metadata)
         
         # Check if exists
         if self._source_exists(filename):
-            print(f"Source already exists: {filename}")
-            return None
+            raise FileExistsError(errno.EEXIST, "Source already exists", filename)
         
         # Download PDF
         pdf_path = self.pdffromdoi.download(doi=doi, filename=filename)
-        if not pdf_path:
-            print(f"Failed to download PDF for DOI: {doi}")
-            return None
         
         try:            
             # Extract text using PyMuPDF4LLM
@@ -187,11 +183,14 @@ class SourceManager:
             bib_content = self._create_bibtex(metadata, filename)
             (self.sources_path / "bib" / f"{filename}.bib").write_text(bib_content, encoding="utf-8")
             
-            print(f"Successfully added source: {filename}")
-            return filename
+            return {
+                "filename": filename,
+                "raw_text": raw_text,
+                "md_content": md_content,
+                "bib_content": bib_content
+            }
         except (OSError, PermissionError) as e:
-            print(f"Failed to write files for {filename}: {e}")
-            return None
+            raise OSError(f"Failed to write files for {filename}") from e
     
     def _create_metadata_md(self, metadata: dict, filename: str) -> str:
         """Create structured metadata markdown from template."""

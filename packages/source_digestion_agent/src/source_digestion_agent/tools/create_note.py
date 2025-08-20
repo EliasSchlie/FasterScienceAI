@@ -25,7 +25,10 @@ def create_note_outer(*args, **kwargs):
         """
         Creates a new note with the provided content.
         """
-        file_path = os.path.join(VAULT_DIRECTORY, note_title + ".md")
+        file_path = os.path.join(
+            VAULT_DIRECTORY,
+            note_title if note_title.endswith(".md") else note_title + ".md",
+        )
         
         if os.path.exists(file_path):
             return f"Note {note_title} already exists."

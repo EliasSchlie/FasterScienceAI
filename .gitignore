@@ -8,6 +8,7 @@
 mlruns
 mlruns/*
 .pytest_cache
+example_vault/
 
 # Ignore LaTeX auxiliary files
 *.aux

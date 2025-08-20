@@ -25,25 +25,28 @@ class PDFFromDOI:
         # Fallback to Unpaywall
         pdf_url = self._get_pdf_url_from_unpaywall(doi)
         if not pdf_url:
-            return None
+            raise FileNotFoundError(f"No open-access PDF found for DOI: {doi}")
         # Try Bright Data first, fallback to direct download
         if self._download_pdf_via_brightdata(pdf_url, path):
             return path
         elif self._download_pdf_direct(pdf_url, path):
             return path
-        return None
+        raise RuntimeError(f"Failed to download PDF from: {pdf_url}")
 
-    def _get_pdf_url_from_unpaywall(self, doi: str) -> Optional[str]:
+    def _get_pdf_url_from_unpaywall(self, doi: str) -> str:
         base = "https://api.unpaywall.org/v2/"
         url = f"{base}{urllib.parse.quote(doi)}?{urllib.parse.urlencode({'email': self.unpaywall_email})}"
         req = urllib.request.Request(url)
         try:
             with urllib.request.urlopen(req, timeout=15) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
-        except Exception:
-            return None
+        except Exception as e:
+            raise RuntimeError(f"Unpaywall lookup failed for DOI: {doi}") from e
         best = data.get("best_oa_location") or {}
-        return best.get("url_for_pdf") or None
+        pdf_url = best.get("url_for_pdf")
+        if not pdf_url:
+            raise FileNotFoundError(f"No open-access PDF URL in Unpaywall response for DOI: {doi}")
+        return pdf_url
 
     def _download_pdf_via_brightdata(self, pdf_url: str, out_path: str) -> bool:
         if not self.brightdata_api_key:
@@ -76,10 +79,10 @@ class PDFFromDOI:
         """Check if DOI is from arXiv (format: 10.48550/arXiv.XXXX)"""
         return doi.startswith("10.48550/arXiv.")
     
-    def _get_arxiv_pdf_url(self, doi: str) -> Optional[str]:
+    def _get_arxiv_pdf_url(self, doi: str) -> str:
         """Extract arXiv ID from DOI and construct PDF URL"""
         if not self._is_arxiv_doi(doi):
-            return None
+            raise ValueError(f"Not an arXiv DOI: {doi}")
         arxiv_id = doi.split("arXiv.")[-1]
         return f"https://arxiv.org/pdf/{arxiv_id}.pdf"
     

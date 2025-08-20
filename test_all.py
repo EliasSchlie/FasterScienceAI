@@ -19,9 +19,17 @@ def run_package_tests(package_path: Path) -> int:
     
     try:
         result = subprocess.run(
-            ["uv", "run", "pytest", str(package_path / "tests"), "-v"],
+            [
+                "uv",
+                "run",
+                "--project",
+                str(package_path),
+                "pytest",
+                str(package_path / "tests"),
+                "-v",
+            ],
             cwd=package_path.parent.parent,  # Run from workspace root
-            check=False
+            check=False,
         )
         return result.returncode
     except Exception as e:

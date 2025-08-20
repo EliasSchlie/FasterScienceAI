@@ -1,5 +1,6 @@
 import os
 from typing import List
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage
 from langchain_core.output_parsers import PydanticOutputParser
@@ -42,14 +43,30 @@ def list_relevant_notes_outer(*args, **kwargs):
         block_size = 50
         relevant_notes = []
         
-        for i in range(0, len(notes), block_size):
-            block = notes[i:i + block_size]
-            
-            # Query LLM for relevant notes in this block
+        # Create blocks for parallel processing
+        blocks = [notes[i:i + block_size] for i in range(0, len(notes), block_size)]
+        
+        def process_block(block):
+            """Process a single block of notes."""
             messages = [
                 HumanMessage(content=f"From this list of notes, return only the ones relevant to: {query}\n\nNotes:\n{block} \n Wrap the output in this format and provide no other text\n{parser.get_format_instructions()}")
             ]
             response = llm.invoke(messages)
-            relevant_notes.extend(parser.parse(response.content).notes)
+            return parser.parse(response.content).notes
+        
+        # Process blocks in parallel
+        with ThreadPoolExecutor(max_workers=min(len(blocks), 10)) as executor:
+            # Submit all tasks
+            future_to_block = {executor.submit(process_block, block): block for block in blocks}
+            
+            # Collect results as they complete
+            for future in as_completed(future_to_block):
+                try:
+                    block_results = future.result()
+                    relevant_notes.extend(block_results)
+                except Exception as exc:
+                    # Log the error but continue processing other blocks
+                    print(f'Block processing generated an exception: {exc}')
+        
         return relevant_notes
     return list_relevant_notes

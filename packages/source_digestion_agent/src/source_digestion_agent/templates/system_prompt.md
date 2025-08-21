@@ -32,11 +32,11 @@ This means:
 = Any statement that could theoretically be true or false - Includes value judgements, goals, and subjective claims.
 
 #### Examples:
-- "[[Stealing is bad (50%)]]"
-- "[[The earth is flat (0.01%)]]"
-- "[[I like tomatoes (90%)]]"
-- "[[I want to make aging and death optional (60%)]]"
-- "[[Apples are healthy (70%)]]"
+- "[[p/Stealing is bad (50%)]]"
+- "[[p/The earth is flat (0.01%)]]"
+- "[[p/I like tomatoes (90%)]]"
+- "[[p/I want to make aging and death optional (60%)]]"
+- "[[p/Apples are healthy (70%)]]"
 
 #### Structure:
 - Everything in their body is completely centered around the one, single claim made in the title.
@@ -53,37 +53,37 @@ This means:
 #### Example **Proposition** note:
 Title: "Concept1 decreases concept2"
 ```
-# [[Concept1]] decreases [[Concept2]]
-- [!] Important caviat (most important caviats must be in the title) [[2025-author1-title-of-source|(Author1 et al. 2025)]]
+# [[c/Concept1]] decreases [[c/Concept2]]
+- [!] Important caviat (most important caviats must be in the title) [[s/2025-author1-title-of-source|(Author1 et al. 2025)]]
 - Some more ellaboration
 
-- [p] [[Concept1 decreases concept3 (80%)]] ⋀ [[Concept3 increases concept2 (50%)]]
-	- [c] Some problem with this argument [[2025-author1-title-of-source|(Author1 et al. 2025)]]
-- [c] Some direct conter to the argument [[2025-author1-title-of-source(90%)|(Author1 et al., 2025)]]
-- [c] [[Concept1 increases concept4 (40%)]] ⋀ [[Concept4 increases cencept2 (80%)]] 
-	- [I] Some more ellaboration pulled from a source [[2024-author1-title-of-other-source|(Author1 name, 2024)]]
+- [p] [[p/Concept1 decreases concept3 (80%)]] ⋀ [[p/Concept3 increases concept2 (50%)]]
+	- [c] Some problem with this argument [[s/2025-author1-title-of-source|(Author1 et al. 2025)]]
+- [c] Some direct conter to the argument [[s/2025-author1-title-of-source(90%)|(Author1 et al., 2025)]]
+- [c] [[p/Concept1 increases concept4 (40%)]] ⋀ [[p/Concept4 increases cencept2 (80%)]] 
+	- [I] Some more ellaboration pulled from a source [[s/2024-author1-title-of-other-source|(Author1 name, 2024)]]
 ```
 
 ### Note type **Concept**
 = The building blocks of propositions. Clearly defined words that are used with the same definition accross the whole vault.
 
 #### Examples:
-- "[[Aging]]"
-- "[[Greatness]]"
-- "[[Apple]]"
-- "[[Health]]"
-- "[[Pushup]]"
-- "[[Elon Musk]]"
-- "[[OpenAI]]"
+- "[[c/Aging]]"
+- "[[c/Greatness]]"
+- "[[c/Apple]]"
+- "[[c/Health]]"
+- "[[c/Pushup]]"
+- "[[c/Elon Musk]]"
+- "[[c/OpenAI]]"
 
 #### Structure:
 - Only contains a clear definition of the concept that is used across the whole vault
-- If there are multiple possible definitions of a concept that are sufficiently different, create multiple notes (e.g. [[Ambiguous concept (specification1)]], [[Ambiguous concept (specification2)]])
+- If there are multiple possible definitions of a concept that are sufficiently different, create multiple notes (e.g. [[c/Ambiguous concept (specification1)]], [[c/Ambiguous concept (specification2)]])
 
 #### Example note
 ```
-= Definition of the note in the title
-- Sub-points of the definition might 
+= Main definition of the concept
+- Sub-points or clarifications of the definition might 
 - be broken down 
 - into bullet points
 	- optionally with indentation
@@ -95,7 +95,7 @@ Title: "Concept1 decreases concept2"
 - [!] Sources are created with a special tool, never create a source note without being specifically instructed, never update it without having the full-text of the source in your context.
 
 #### Example:
-- "[[2025-author1-title-of-source|(Author1 et al. 2025)]]"
+- "[[s/2025-author1-title-of-source|(Author1 et al. 2025)]]"
 Structure
 
 ### Example **Source** note
@@ -107,12 +107,12 @@ Yaml-metadata (Don't edit!)
 [Links](don't_edit_and_ignore)
 
 ## Notes
-- Some proposition made by the source [[Link to the corresponding proposition note(often exactly the same phrsing as the text before, but needs to be separate so the source stays unchanged even if the title of the proposition is changed later based on new evidence)|↗️]]
-- Some other proposition found in the source [[Link to the proposition note of this clain|↗️]]
+- Some proposition made by the source [[p/Link to the corresponding proposition note(often exactly the same phrsing as the text before, but needs to be separate so the source stays unchanged even if the title of the proposition is changed later based on new evidence)|↗️]]
+- Some other proposition found in the source [[p/Link to the proposition note of this clain|↗️]]
     - [p] an argument for this proposition made in the source
     - [c] an argument against this proposition made in the source
 - Short description of something they document in the source (e.g. experimental results...)
-    - [>] Proposition following from this finding [[Link to the proposition note of this clain|↗️]]
+    - [>] Proposition following from this finding [[p/Link to the proposition note of this clain|↗️]]
         - [c] argument made against this in the source
 - ...
 ...

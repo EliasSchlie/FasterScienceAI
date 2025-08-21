@@ -16,13 +16,7 @@ class SourceManager:
     def __init__(self, vault_path: str, brightdata_api_key: str = None):
         self.vault_path = Path(vault_path)
         self.sources_path = self.vault_path / "sources"
-        self._ensure_directories()
-        self.pdffromdoi = PDFFromDOI(output_dir=self.sources_path/"pdfs", brightdata_api_key=brightdata_api_key)
-    
-    def _ensure_directories(self):
-        """Create necessary directory structure."""
-        for subdir in ["pdfs", "raw", "md", "bib"]:
-            (self.sources_path / subdir).mkdir(parents=True, exist_ok=True)
+        self.pdffromdoi = PDFFromDOI(output_dir=self.sources_path, brightdata_api_key=brightdata_api_key)
     
     def _sanitize_filename(self, title: str) -> str:
         """Convert title to safe filename."""
@@ -153,8 +147,8 @@ class SourceManager:
     
     def _source_exists(self, filename: str) -> bool:
         """Check if source already exists."""
-        return any((self.sources_path / subdir / f"{filename}.{ext}").exists() 
-                  for subdir, ext in [("pdfs", "pdf"), ("md", "md"), ("bib", "bib")])
+        return all((dir / f"{filename}.{ext}").exists() 
+                  for dir, ext in [(self.sources_path, "pdf"), ("s", "md"), (self.sources_path, "txt"), (self.sources_path, "bib")])
     
     def add_source(self, doi: str) -> list[str]:
         """Add source to vault. Returns dict with filename, raw_text, md_content, bib_content if successful, raises on failure."""
@@ -173,15 +167,15 @@ class SourceManager:
         try:            
             # Extract text using PyMuPDF4LLM
             raw_text = pymupdf4llm.to_markdown(str(pdf_path))
-            (self.sources_path / "raw" / f"{filename}.txt").write_text(raw_text, encoding="utf-8")
+            (self.sources_path / f"{filename}.txt").write_text(raw_text, encoding="utf-8")
             
             # Create metadata markdown
             md_content = self._create_metadata_md(metadata, filename)
-            (self.sources_path / "md" / f"{filename}.md").write_text(md_content, encoding="utf-8")
+            ("s" / f"{filename}.md").write_text(md_content, encoding="utf-8")
             
             # Create BibTeX
             bib_content = self._create_bibtex(metadata, filename)
-            (self.sources_path / "bib" / f"{filename}.bib").write_text(bib_content, encoding="utf-8")
+            (self.sources_path / f"{filename}.bib").write_text(bib_content, encoding="utf-8")
             
             return {
                 "filename": filename,

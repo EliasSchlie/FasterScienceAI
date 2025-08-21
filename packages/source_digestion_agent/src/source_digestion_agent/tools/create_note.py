@@ -26,8 +26,8 @@ def create_note_outer(*args, **kwargs):
         Creates a new note with the provided content.
         """
         
-        if not (note_title.startswith("proposition/") or note_title.startswith("concept/")):
-            return "Error: Notes can only be created in the 'proposition' or 'concept' folders."
+        if not (note_title.startswith("p/") or note_title.startswith("c/")):
+            return "Error: Notes can only be created in the 'p/' (propositions) or 'c/' (concepts) folders."
 
         file_path = os.path.join(
             VAULT_DIRECTORY,

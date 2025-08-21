@@ -6,13 +6,19 @@ from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 from langchain_core.tools import tool
 from langgraph.checkpoint.memory import InMemorySaver
+import functools
+import inspect
+from rich.console import Console
+from rich.pretty import Pretty
 
 from add_source_to_vault import SourceManager
+import tools as tool_pkg
 
 # MLflow autologging
 mlflow.openai.autolog()
 mlflow.langchain.autolog()
 load_dotenv()
+console = Console()
 
 
 class SourceDigestionAgent:
@@ -21,9 +27,9 @@ class SourceDigestionAgent:
             vault_directory: str, 
             doi: str, 
             model: str = "gpt-5-mini", 
-            brightdata_api_key: str = None
+            brightdata_api_key: str = None,
+            debug: bool = False,
         ) -> None:
-        from . import tools as tool_pkg
 
         try:
             result = SourceManager(vault_path=vault_directory, brightdata_api_key=brightdata_api_key).add_source(doi)
@@ -47,10 +53,35 @@ class SourceDigestionAgent:
         )
         print(prompt)
 
-        tools = [
-            tool(getattr(tool_pkg, name)(vault_directory=vault_directory))
-            for name in tool_pkg.__all__
-        ]
+        if debug:
+            def _wrap_with_pause(func):
+                sig = inspect.signature(func)
+
+                @functools.wraps(func)
+                def wrapped(*args, **kwargs):
+                    bound = sig.bind_partial(*args, **kwargs)
+                    bound.apply_defaults()
+                    console.print(f"[bold magenta][tool:args][/bold magenta] [cyan]{func.__name__}[/cyan]")
+                    console.print(Pretty(dict(bound.arguments), indent_guides=True))
+                    input("Press Enter to call tool...")
+                    result = func(*args, **kwargs)
+                    console.print(f"[bold green][tool:out][/bold green]  [cyan]{func.__name__}[/cyan]")
+                    console.print(Pretty(result, indent_guides=True))
+                    input("Press Enter to continue...")
+                    return result
+
+                wrapped.__signature__ = sig
+                return wrapped
+
+            tools = [
+                tool(_wrap_with_pause(getattr(tool_pkg, name)(vault_directory=vault_directory)))
+                for name in tool_pkg.__all__
+            ]
+        else:
+            tools = [
+                tool(getattr(tool_pkg, name)(vault_directory=vault_directory))
+                for name in tool_pkg.__all__
+            ]
 
         llm = ChatOpenAI(
             model=model,
@@ -64,30 +95,18 @@ class SourceDigestionAgent:
             checkpointer=InMemorySaver(),
         )
 
-    def invoke(self, message: str, thread_id: str, verbose: bool = False) -> str:
+    def invoke(self, message: str, thread_id: str) -> str:
         inputs = {"messages": [{"role": "user", "content": message}]}
         config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 60}
 
-        if not verbose:
-            result = self._agent.invoke(inputs, config=config)
-        else:
-            async def _run():
-                out = None
-                async for event in self._agent.astream_events(inputs, config=config, version="v2"):
-                    ev = event.get("event")
-                    name = event.get("name")
-                    data = event.get("data", {})
-                    if ev == "on_tool_start":
-                        print(f"[tool:start] {name} args={data.get('input')}")
-                    elif ev == "on_tool_end":
-                        print(f"[tool:end]   {name} -> {data.get('output')}")
-                    elif ev == "on_graph_end":
-                        out = data.get("output")
-                return out
-
-            result = asyncio.run(_run())
+        result = self._agent.invoke(inputs, config=config)
 
         final = result["messages"][-1]
         return getattr(final, "content", str(final))
 
     __call__ = invoke
+
+
+if __name__ == "__main__":
+    agent = SourceDigestionAgent(vault_directory="./example_vault", doi="10.48550/arXiv.2506.13131", model="gpt-5-mini", debug=True)
+    print(agent.invoke("Digest this source?", thread_id="example-thread"))

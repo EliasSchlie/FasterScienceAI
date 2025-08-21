@@ -24,6 +24,7 @@ This means:
 - **Conciseness:**
 	- Put extreme care into making everything titles as concise and clear as possible.
 	- Remove all unnecessary words. Always think: "Can I say the same thing in fewer words?"
+- **Connectedness:** Notes should build on each other. Instead of repeating an argument or definition, link to the appropriate note.
 
 ## Note types
 
@@ -45,11 +46,14 @@ This means:
 	- [I] "Explanations": Bullet point explaining a part of the proposition 
 	- Those symbols can be stacked (e.g. there can be a "- [c]"  indented behind a "- [p]" representing a counter to a supporting argument...)
 - Arguments are nearly always links to other propositions or sources with additional explanation
-- The title contains in parenthesis how sure you are that the proposition is true (depends on the arguments and source backings)  
+- The title contains in parenthesis how sure you are that the proposition is true (depends on the arguments and source backings)
+- The title of the proposition must be repeated on top of the note's body. There, every concept used in the proposition should be linked to.
+	- When you want to create a proposition that uses concepts that don't have notes jet, create and define them before.
 
 #### Example **Proposition** note:
+Title: "Concept1 decreases concept2"
 ```
-# Concept1 decreases concept2
+# [[Concept1]] decreases [[Concept2]]
 - [!] Important caviat (most important caviats must be in the title) [[2025-author1-title-of-source|(Author1 et al. 2025)]]
 - Some more ellaboration
 
@@ -59,6 +63,32 @@ This means:
 - [c] [[Concept1 increases concept4 (40%)]] ⋀ [[Concept4 increases cencept2 (80%)]] 
 	- [I] Some more ellaboration pulled from a source [[2024-author1-title-of-other-source|(Author1 name, 2024)]]
 ```
+
+### Note type **Concept**
+= The building blocks of propositions. Clearly defined words that are used with the same definition accross the whole vault.
+
+#### Examples:
+- "[[Aging]]"
+- "[[Greatness]]"
+- "[[Apple]]"
+- "[[Health]]"
+- "[[Pushup]]"
+- "[[Elon Musk]]"
+- "[[OpenAI]]"
+
+#### Structure:
+- Only contains a clear definition of the concept that is used across the whole vault
+- If there are multiple possible definitions of a concept that are sufficiently different, create multiple notes (e.g. [[Ambiguous concept (specification1)]], [[Ambiguous concept (specification2)]])
+
+#### Example note
+```
+= Definition of the note in the title
+- Sub-points of the definition might 
+- be broken down 
+- into bullet points
+	- optionally with indentation
+```
+
 
 ### Note type **Source**
 = A collection of claims made by a source and links to the resulting proposition notes.

@@ -37,13 +37,13 @@ def list_relevant_notes_outer(*args, **kwargs):
         """
         print(f"Relevant notes: {notes}")
     
-    llm_with_tools = llm.bind_tools([log_relevant_notes])
+    llm_with_tools = llm.bind_tools([log_relevant_notes], tool_choice=True)
     
     def list_relevant_notes(
-            query: str = Field(description="Short explanation of what notes you need. (can be in natural language)")
+            query: str = Field(description="Concise explanation of what notes you need. This can be in natural language and contain many different sub-topics.")
             ) -> list[str]:
         """
-        Get titles of all notes that are relevant to the query.
+        Get titles of all notes that are relevant to the query. It's possible to call this tool with a long query, consisting of many parts.
         """
         notes = get_note_list(vault_directory)
         if not notes:
@@ -55,7 +55,9 @@ def list_relevant_notes_outer(*args, **kwargs):
 
         def process_block(block: List[str]) -> List[str]:
             system_prompt = (
-                "Call the log_relevant_notes tool and select only the note paths relevant to the query. If no notes are relevant, return an empty list \n"
+                "Call the log_relevant_notes tool and select only the note paths relevant to the query." 
+                "If the query consists of many parts, it's enough for a note to be relevant to one of the parts to be included." 
+                "If no notes are relevant to the query, return an empty list \n"
                 "## Query:\n" 
                 "```\n"
                 f"{query}\n"
@@ -65,7 +67,7 @@ def list_relevant_notes_outer(*args, **kwargs):
                 "Choose strictly from this list (use exact strings):\n"
                 f"{block}\n\n"
             )
-            resp = llm_with_tools.invoke([SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)])
+            resp = llm_with_tools.invoke([SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]) # TODO: Force tool use
             calls = getattr(resp, "tool_calls", None) or getattr(resp, "additional_kwargs", {}).get("tool_calls", [])
             if not calls:
                 print("Tool call failed: no tool_calls in response")

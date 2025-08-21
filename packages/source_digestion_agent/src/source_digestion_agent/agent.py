@@ -37,9 +37,9 @@ class SourceDigestionAgent:
             print(f"Source already exists: {e.filename}")
             result = {
                 "filename": e.filename,
-                "raw_text": open(os.path.join(vault_directory, "Sources", "raw", f"{e.filename}.txt"), "r", encoding="utf-8").read(),
-                "md_content": open(os.path.join(vault_directory, "Sources", "md", f"{e.filename}.md"), "r", encoding="utf-8").read(),
-                "bib_content": open(os.path.join(vault_directory, "Sources", "bib", f"{e.filename}.bib"), "r", encoding="utf-8").read()
+                "raw_text": open(os.path.join(vault_directory, "Sources", f"{e.filename}.txt"), "r", encoding="utf-8").read(),
+                "md_content": open(os.path.join(vault_directory, "s", f"{e.filename}.md"), "r", encoding="utf-8").read(),
+                "bib_content": open(os.path.join(vault_directory, "Sources", f"{e.filename}.bib"), "r", encoding="utf-8").read()
             }
 
         prompt_path = os.path.join(os.path.dirname(__file__), "templates", "system_prompt.md")

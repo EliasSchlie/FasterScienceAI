@@ -77,16 +77,19 @@ Title: "Concept1 decreases concept2"
 - "[[c/OpenAI]]"
 
 #### Structure:
-- Only contains a clear definition of the concept that is used across the whole vault
+- Starts with `= ` followed by a clear and concise definition.
+- The definition might be followed by bullet points that elaborate it further
+- The body of the concept note never contains propositions about that concept above what is truly necessary to define that concept
 - If there are multiple possible definitions of a concept that are sufficiently different, create multiple notes (e.g. [[c/Ambiguous concept (specification1)]], [[c/Ambiguous concept (specification2)]])
 
-#### Example note
+#### Structure example
+(The bulletpoints under the definition for inspiration. Notes might contain completely different or no bullet points at all)
 ```
 = Main definition of the concept
-- Sub-points or clarifications of the definition might 
-- be broken down 
-- into bullet points
-	- optionally with indentation
+- Neseccary attributes:
+	- [[c/Attribute1]]
+	- ...
+- Type of [[c/Overarching concept]]
 ```
 
 

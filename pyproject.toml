@@ -15,6 +15,6 @@ dependencies = [
 members = ["packages/*"]
 
 [tool.uv.sources]
-add-source-to-vault = { workspace = true }
 source-digestion-agent = { workspace = true }
+add-source-to-vault = { workspace = true }
 pdf-from-doi = { workspace = true }

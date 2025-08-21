@@ -16,7 +16,13 @@ class SourceManager:
     def __init__(self, vault_path: str, brightdata_api_key: str = None):
         self.vault_path = Path(vault_path)
         self.sources_path = self.vault_path / "sources"
+        self.source_notes_path = self.vault_path / "s"
         self.pdffromdoi = PDFFromDOI(output_dir=self.sources_path, brightdata_api_key=brightdata_api_key)
+        self._create_dirs()
+        
+    def _create_dirs(self):
+        self.sources_path.mkdir(parents=True, exist_ok=True)
+        self.source_notes_path.mkdir(parents=True, exist_ok=True)
     
     def _sanitize_filename(self, title: str) -> str:
         """Convert title to safe filename."""
@@ -148,7 +154,7 @@ class SourceManager:
     def _source_exists(self, filename: str) -> bool:
         """Check if source already exists."""
         return all((dir / f"{filename}.{ext}").exists() 
-                  for dir, ext in [(self.sources_path, "pdf"), ("s", "md"), (self.sources_path, "txt"), (self.sources_path, "bib")])
+                  for dir, ext in [(self.sources_path, "pdf"), (self.source_notes_path, "md"), (self.sources_path, "txt"), (self.sources_path, "bib")])
     
     def add_source(self, doi: str) -> list[str]:
         """Add source to vault. Returns dict with filename, raw_text, md_content, bib_content if successful, raises on failure."""
@@ -171,7 +177,7 @@ class SourceManager:
             
             # Create metadata markdown
             md_content = self._create_metadata_md(metadata, filename)
-            ("s" / f"{filename}.md").write_text(md_content, encoding="utf-8")
+            (self.source_notes_path / f"{filename}.md").write_text(md_content, encoding="utf-8")
             
             # Create BibTeX
             bib_content = self._create_bibtex(metadata, filename)
